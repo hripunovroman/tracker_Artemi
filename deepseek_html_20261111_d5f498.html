@@ -1,0 +1,929 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ноябрь 2026 — трекер результативности</title>
+<style>
+  :root{
+    --line:#e4eaf2;
+    --text:#1f2937;
+    --muted:#8a94a6;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    min-height:100vh;
+    padding:24px 16px 60px;
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    background:linear-gradient(180deg,#eef4fb 0%,#e4edf8 100%);
+    color:var(--text);
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1280px;margin:0 auto;}
+
+  /* ---------- Шапка ---------- */
+  .top{
+    display:flex;align-items:center;justify-content:space-between;
+    gap:16px;flex-wrap:wrap;margin-bottom:18px;
+  }
+  h1{margin:0;font-size:24px;letter-spacing:-.4px;}
+  h1 small{display:block;font-size:13px;font-weight:500;color:var(--muted);margin-top:5px;letter-spacing:0;}
+  .btn{
+    border:1px solid var(--line);background:#fff;color:#4b5563;
+    padding:10px 16px;border-radius:11px;font-size:14px;font-weight:500;
+    cursor:pointer;font-family:inherit;transition:.15s;
+  }
+  .btn:hover{background:#f6f9fd;border-color:#cfd9e6;}
+  .btn:active{transform:translateY(1px);}
+
+  .card{
+    background:#fff;border-radius:18px;overflow:hidden;
+    box-shadow:0 8px 28px -16px rgba(25,55,110,.35), 0 1px 3px rgba(25,55,110,.06);
+  }
+
+  /* ---------- Сцена ---------- */
+  .scene{position:relative;margin-bottom:18px;}
+  .scene svg{display:block;width:100%;height:clamp(170px,26vw,280px);}
+  .hud{
+    position:absolute;left:14px;right:14px;bottom:13px;
+    background:rgba(255,255,255,.9);
+    -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);
+    border-radius:14px;padding:10px 15px;
+    box-shadow:0 6px 22px -8px rgba(10,30,60,.35);
+  }
+  .hud-top{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+  .hud-pct{font-size:20px;font-weight:800;letter-spacing:-.5px;color:#1e3a5f;}
+  .hud-ratio{font-size:13px;font-weight:600;color:#5c6b7f;}
+  .bar{height:8px;background:#e5ebf3;border-radius:99px;overflow:hidden;margin-top:8px;}
+  .bar-fill{
+    height:100%;width:0%;border-radius:99px;
+    background:linear-gradient(90deg,#60a5fa,#34d399);
+    transition:width .5s cubic-bezier(.4,0,.2,1);
+  }
+
+  /* --- разделы сцены --- */
+  .scene-caption{
+    position:absolute;top:12px;left:14px;
+    background:rgba(255,255,255,.82);
+    -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);
+    border-radius:10px;padding:5px 11px;
+    font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;
+    color:#4a6483;pointer-events:none;
+  }
+  .scene-legend{
+    position:absolute;top:12px;right:14px;
+    display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;
+    pointer-events:none;
+  }
+  .scene-legend .chip{
+    background:rgba(255,255,255,.82);
+    -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);
+    border-radius:10px;padding:5px 10px;
+    font-size:10.5px;font-weight:700;color:#4a6483;
+    display:inline-flex;align-items:center;gap:5px;
+    white-space:nowrap;box-shadow:0 2px 8px -4px rgba(10,30,60,.25);
+  }
+  .scene-legend .dot{width:8px;height:8px;border-radius:50%;display:inline-block;}
+
+  /* ---------- Таблица ---------- */
+  .table-card{padding:0;}
+  .scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  table{border-collapse:separate;border-spacing:0;min-width:100%;font-size:13px;}
+
+  thead th{
+    background:#f6f9fd;border-bottom:1px solid var(--line);
+    font-weight:600;color:#64748b;padding:7px 0;font-size:11px;
+  }
+  thead th .dnum{display:block;font-size:13px;color:#334155;font-weight:700;}
+  thead th .dwd{display:block;font-size:10px;opacity:.7;margin-top:1px;}
+  thead th.we{background:#eef3fa;}
+  thead th.we .dnum{color:#b45309;}
+  thead th.today{background:#dbeafe;}
+  thead th.today .dnum{color:#1d4ed8;}
+
+  tbody td{
+    width:34px;min-width:34px;height:38px;
+    border-bottom:1px solid #f2f6fb;border-right:1px solid #f7fafd;
+    text-align:center;vertical-align:middle;
+  }
+  tbody td.we{background:#fafcff;}
+  tbody tr:last-child td{border-bottom:none;}
+  tbody td.na{
+    background:repeating-linear-gradient(45deg,#fbfcfe,#fbfcfe 4px,#f3f6fa 4px,#f3f6fa 8px);
+  }
+  tbody td.has-val{background:#f0fdf4;}
+
+  .task-col{
+    position:sticky;left:0;z-index:2;
+    background:#fff;text-align:left;
+    padding:6px 12px;
+    border-right:1px solid var(--line);
+    border-bottom:1px solid #f2f6fb;
+  }
+  thead .task-col{background:#f6f9fd;z-index:4;}
+  tbody tr:last-child .task-col{border-bottom:none;}
+  .tc{display:flex;align-items:center;justify-content:space-between;gap:10px;min-width:196px;}
+  .tname{display:inline-flex;align-items:center;gap:7px;font-weight:600;white-space:nowrap;font-size:13px;}
+  .ticon{font-size:15px;line-height:1;}
+  .badge{
+    font-size:11px;font-weight:700;color:#7b8798;background:#f1f5f9;
+    padding:2px 8px;border-radius:99px;white-space:nowrap;transition:.2s;
+  }
+  .badge.full{background:#dcfce7;color:#15803d;}
+
+  /* группа (раздел) */
+  tr.group-row td{
+    background:#eef4fb;
+    padding:8px 14px;
+    font-size:12px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;
+    color:#3b5a80;border-bottom:1px solid #dbe6f2;
+    position:sticky;left:0;
+  }
+  tr.group-row td .gicon{margin-right:7px;font-size:14px;}
+  tr.group-row td .gcount{
+    float:right;font-weight:700;font-size:11px;color:#6b809c;
+    text-transform:none;letter-spacing:0;
+  }
+
+  /* чекбокс */
+  input[type=checkbox]{
+    -webkit-appearance:none;appearance:none;
+    width:19px;height:19px;border-radius:7px;
+    border:2px solid #cfd9e6;background:#fff;
+    cursor:pointer;vertical-align:middle;margin:0;
+    transition:background-color .15s,border-color .15s,transform .1s;
+  }
+  input[type=checkbox]:hover{border-color:#8fb4e0;}
+  input[type=checkbox]:active{transform:scale(.92);}
+  input[type=checkbox]:checked{
+    background-color:#22c55e;border-color:#16a34a;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'/%3E%3C/svg%3E");
+    background-size:13px 13px;background-position:center;background-repeat:no-repeat;
+  }
+
+  /* числовое поле */
+  input.num{
+    width:32px;height:25px;text-align:center;
+    border:1.5px solid #dde4ee;border-radius:8px;
+    font-size:12px;font-weight:700;color:#334155;background:#fff;
+    outline:none;font-family:inherit;padding:0;
+    transition:border-color .15s,box-shadow .15s;
+  }
+  input.num:focus{border-color:#60a5fa;box-shadow:0 0 0 3px rgba(96,165,250,.18);}
+  input.num::-webkit-outer-spin-button,
+  input.num::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
+  input.num{-moz-appearance:textfield;appearance:textfield;}
+
+  /* ---------- Спорт: цель ---------- */
+  .goal-row th.task-col{background:#f2fbf5;}
+  .goal-box{
+    display:flex;align-items:center;gap:8px;min-width:196px;
+    justify-content:space-between;flex-wrap:wrap;
+  }
+  .goal-box label{font-size:12px;font-weight:600;color:#5c6b7f;white-space:nowrap;}
+  .goal-box input{
+    width:60px;height:28px;text-align:center;
+    border:1.5px solid #bfe3cd;border-radius:8px;
+    font-size:13px;font-weight:800;color:#15803d;background:#fff;
+    outline:none;font-family:inherit;padding:0;
+    transition:border-color .15s,box-shadow .15s;
+  }
+  .goal-box input:focus{border-color:#34d399;box-shadow:0 0 0 3px rgba(52,211,153,.2);}
+  .goal-box input::-webkit-outer-spin-button,
+  .goal-box input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
+  .goal-box input{-moz-appearance:textfield;appearance:textfield;}
+  .goal-progress{
+    display:flex;align-items:center;gap:8px;
+    padding:2px 12px 9px;
+    font-size:12px;font-weight:600;color:#5c6b7f;
+  }
+  .goal-progress .gp-bar{
+    flex:1;max-width:240px;height:7px;background:#e5ebf3;border-radius:99px;overflow:hidden;
+  }
+  .goal-progress .gp-fill{
+    height:100%;width:0%;border-radius:99px;
+    background:linear-gradient(90deg,#34d399,#22c55e);
+    transition:width .5s cubic-bezier(.4,0,.2,1);
+  }
+  .goal-progress .gp-text{white-space:nowrap;}
+  .goal-progress .gp-text b{color:#15803d;}
+
+  /* ---------- График подтягиваний ---------- */
+  .chart-card{padding:16px 18px 10px;margin-top:18px;}
+  .chart-head{
+    display:flex;align-items:baseline;justify-content:space-between;
+    gap:12px;flex-wrap:wrap;margin-bottom:10px;
+  }
+  .chart-title{font-size:15px;font-weight:800;color:#1e3a5f;letter-spacing:-.2px;}
+  .chart-title .ticon{margin-right:6px;}
+  .chart-sum{font-size:12px;font-weight:600;color:#64748b;}
+  .chart-sum b{color:#15803d;}
+  .chart-wrap{position:relative;width:100%;}
+  #chart{display:block;width:100%;height:200px;}
+  .chart-empty{
+    position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    font-size:13px;color:#9aa6b6;pointer-events:none;text-align:center;padding:0 20px;
+  }
+
+  .hint{
+    text-align:center;font-size:13px;color:var(--muted);
+    margin:16px 4px 0;line-height:1.5;
+  }
+
+  /* плавность SVG */
+  #skyBlueRect,#rainbow,#rain,#cloudsGrey,#cloudsWhite,
+  #hillBackGreen,#hillFrontGreen,#flowers,#birds,#sunGlow{
+    transition:opacity .55s ease;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="top">
+    <h1>Ноябрь 2026
+      <small>1 — 30 ноября · трекер результативности</small>
+    </h1>
+    <button class="btn" id="reset">Сбросить всё</button>
+  </div>
+
+  <!-- ================= СЦЕНА ================= -->
+  <section class="card scene">
+    <div class="scene-caption">Погода · прогресс месяца</div>
+    <div class="scene-legend">
+      <span class="chip"><span class="dot" style="background:#9db2c8"></span>Дождь</span>
+      <span class="chip"><span class="dot" style="background:#8fd0f0"></span>Небо</span>
+      <span class="chip"><span class="dot" style="background:#ffd93d"></span>Солнце</span>
+      <span class="chip"><span class="dot" style="background:#5faa42"></span>Природа</span>
+    </div>
+    <svg id="scene" viewBox="0 0 1200 260" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+      <defs>
+        <linearGradient id="skyGrey" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#7e8c9b"/>
+          <stop offset="100%" stop-color="#b9c4cf"/>
+        </linearGradient>
+        <linearGradient id="skyBlue" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#3f9ede"/>
+          <stop offset="100%" stop-color="#cdeafb"/>
+        </linearGradient>
+        <radialGradient id="sunGrad" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#fffde7"/>
+          <stop offset="55%" stop-color="#ffd93d"/>
+          <stop offset="100%" stop-color="#ffb703"/>
+        </radialGradient>
+        <radialGradient id="sunGlowGrad" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#ffe98a" stop-opacity="0.75"/>
+          <stop offset="100%" stop-color="#ffe98a" stop-opacity="0"/>
+        </radialGradient>
+        <linearGradient id="grassGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#8ed168"/>
+          <stop offset="100%" stop-color="#469a30"/>
+        </linearGradient>
+      </defs>
+
+      <!-- небо -->
+      <rect width="1200" height="260" fill="url(#skyGrey)"/>
+      <rect id="skyBlueRect" width="1200" height="260" fill="url(#skyBlue)" opacity="0"/>
+
+      <!-- радуга -->
+      <g id="rainbow" opacity="0" fill="none" stroke-width="7" stroke-linecap="round">
+        <path d="M470 240 A 150 150 0 0 1 770 240" stroke="#ef4444" stroke-opacity=".45"/>
+        <path d="M482 240 A 138 138 0 0 1 758 240" stroke="#f97316" stroke-opacity=".45"/>
+        <path d="M494 240 A 126 126 0 0 1 746 240" stroke="#facc15" stroke-opacity=".45"/>
+        <path d="M506 240 A 114 114 0 0 1 734 240" stroke="#22c55e" stroke-opacity=".45"/>
+        <path d="M518 240 A 102 102 0 0 1 722 240" stroke="#3b82f6" stroke-opacity=".45"/>
+        <path d="M530 240 A  90  90 0 0 1 710 240" stroke="#a855f7" stroke-opacity=".45"/>
+      </g>
+
+      <!-- солнце -->
+      <g id="sunGroup" transform="translate(1000 290)">
+        <circle id="sunGlow" r="110" fill="url(#sunGlowGrad)" opacity="0"/>
+        <circle r="34" fill="url(#sunGrad)"/>
+      </g>
+
+      <!-- тучи серые -->
+      <g id="cloudsGrey" fill="#c9d3dd" opacity="0.95">
+        <ellipse cx="180" cy="60" rx="70" ry="26"/>
+        <ellipse cx="235" cy="48" rx="48" ry="22"/>
+        <ellipse cx="700" cy="45" rx="60" ry="22"/>
+        <ellipse cx="745" cy="36" rx="40" ry="18"/>
+        <ellipse cx="980" cy="82" rx="55" ry="20"/>
+      </g>
+      <!-- облака белые -->
+      <g id="cloudsWhite" fill="#ffffff" opacity="0">
+        <ellipse cx="180" cy="60" rx="70" ry="26"/>
+        <ellipse cx="235" cy="48" rx="48" ry="22"/>
+        <ellipse cx="700" cy="45" rx="60" ry="22"/>
+        <ellipse cx="745" cy="36" rx="40" ry="18"/>
+        <ellipse cx="980" cy="82" rx="55" ry="20"/>
+      </g>
+
+      <!-- дождь -->
+      <g id="rain" stroke="#a9c0d6" stroke-width="1.6" stroke-linecap="round" opacity="1"></g>
+
+      <!-- дальний холм -->
+      <path d="M0 195 C 160 145, 330 155, 480 190 C 640 228, 800 168, 950 165 C 1060 163, 1140 185, 1200 175 L1200 260 L0 260 Z" fill="#7d8a75"/>
+      <path id="hillBackGreen" d="M0 195 C 160 145, 330 155, 480 190 C 640 228, 800 168, 950 165 C 1060 163, 1140 185, 1200 175 L1200 260 L0 260 Z" fill="#5faa42" opacity="0"/>
+
+      <!-- ближний холм -->
+      <path d="M0 232 C 150 200, 330 245, 500 230 C 680 215, 840 250, 1000 232 C 1100 221, 1160 234, 1200 230 L1200 260 L0 260 Z" fill="#6d7a68"/>
+      <path id="hillFrontGreen" d="M0 232 C 150 200, 330 245, 500 230 C 680 215, 840 250, 1000 232 C 1100 221, 1160 234, 1200 230 L1200 260 L0 260 Z" fill="url(#grassGrad)" opacity="0"/>
+
+      <!-- дерево -->
+      <g id="tree" transform="translate(380 240) scale(0.1)">
+        <rect x="-10" y="-80" width="20" height="85" rx="8" fill="#7c4a26"/>
+        <circle cx="0"   cy="-100" r="50" fill="#3f9e46"/>
+        <circle cx="-36" cy="-75"  r="36" fill="#4bb857"/>
+        <circle cx="36"  cy="-72"  r="34" fill="#358f3c"/>
+        <circle cx="0"   cy="-130" r="34" fill="#57c766"/>
+      </g>
+
+      <!-- цветы -->
+      <g id="flowers" opacity="0">
+        <circle cx="150" cy="200" r="3.2" fill="#ff8fab"/>
+        <circle cx="172" cy="210" r="2.6" fill="#ffd166"/>
+        <circle cx="240" cy="208" r="3"   fill="#c77dff"/>
+        <circle cx="266" cy="216" r="2.6" fill="#ff8fab"/>
+        <circle cx="470" cy="222" r="3"   fill="#ffd166"/>
+        <circle cx="520" cy="230" r="2.6" fill="#ff8fab"/>
+        <circle cx="640" cy="226" r="3"   fill="#c77dff"/>
+        <circle cx="700" cy="234" r="2.6" fill="#ffd166"/>
+        <circle cx="820" cy="238" r="3"   fill="#ff8fab"/>
+        <circle cx="900" cy="226" r="2.6" fill="#c77dff"/>
+        <circle cx="1010" cy="228" r="3"  fill="#ffd166"/>
+        <circle cx="1080" cy="236" r="2.6" fill="#ff8fab"/>
+      </g>
+
+      <!-- птицы -->
+      <g id="birds" opacity="0" fill="none" stroke="#4b5f75" stroke-width="2.5"
+         stroke-linecap="round" stroke-linejoin="round">
+        <path d="M200 80 q10 -9 20 0 q10 -9 20 0"/>
+        <path d="M520 55 q8 -7 16 0 q8 -7 16 0"/>
+        <path d="M860 95 q8 -7 16 0 q8 -7 16 0"/>
+      </g>
+    </svg>
+
+    <div class="hud">
+      <div class="hud-top">
+        <span class="hud-pct" id="pct">0%</span>
+        <span class="hud-ratio" id="ratio">0 из 0 заданий</span>
+      </div>
+      <div class="bar"><div class="bar-fill" id="barFill"></div></div>
+    </div>
+  </section>
+
+  <!-- ================= ТАБЛИЦА ================= -->
+  <section class="card table-card">
+    <div class="scroll">
+      <table id="grid"></table>
+    </div>
+  </section>
+
+  <!-- ================= ГРАФИК ПОДТЯГИВАНИЙ ================= -->
+  <section class="card chart-card">
+    <div class="chart-head">
+      <div class="chart-title"><span class="ticon">💪</span>График подтягиваний по дням</div>
+      <div class="chart-sum" id="chartSum">всего: <b>0</b> · максимум: <b>0</b></div>
+    </div>
+    <div class="chart-wrap">
+      <canvas id="chart" width="1200" height="200"></canvas>
+      <div class="chart-empty" id="chartEmpty">Добавьте количество подтягиваний в таблице — здесь появится график</div>
+    </div>
+  </section>
+
+  <p class="hint">
+    Отмечайте выполненные задания — картинка оживает по мере прогресса.<br>
+    Данные сохраняются в этом браузере автоматически.
+  </p>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ---------- Константы ---------- */
+  const YEAR  = 2026;
+  const MONTH = 10;          // ноябрь (месяцы с 0)
+  const DAYS  = 30;
+  const WD    = ['Вс','Пн','Вт','Ср','Чт','Пт','Сб'];
+  const KEY   = 'tracker-nov-2026-v3';
+
+  /* Дни недели: 0 = Вс, 1 = Пн, ... 6 = Сб */
+  const TASKS = [
+    /* --- Школа --- */
+    { id:'school',    name:'Школа',            icon:'🏫', days:[1,2,3,4,5], group:'school' },
+    /* --- Дополнительные занятия --- */
+    { id:'tourism',   name:'Туризм',           icon:'🥾', days:[2,4,0],     group:'extra' },
+    { id:'english',   name:'Английский',       icon:'🔤', days:[1,3],       group:'extra' },
+    { id:'math',      name:'Математика',       icon:'📐', days:[3,5],       group:'extra' },
+    /* --- Домашняя подготовка --- */
+    { id:'homework',  name:'Уроки сделаны',    icon:'📝', days:[1,2,3,4,5], group:'prep' },
+    { id:'reading',   name:'Чтение на англ.',  icon:'📖', days:[0,1,2,3,4,5,6], group:'prep' },
+    { id:'backpack',  name:'Портфель собран',  icon:'🎒', days:[0,1,2,3,4,5,6], group:'prep' },
+    /* --- Спорт --- */
+    { id:'pullups',   name:'Подтягивание',     icon:'💪', days:[0,1,2,3,4,5,6], group:'sport', type:'number' },
+    /* --- Домашние обязанности --- */
+    { id:'trash',     name:'Мусор вынес',      icon:'🗑️', days:[0,1,2,3,4,5,6], group:'chores' },
+    { id:'room',      name:'Порядок в комнате',icon:'🧸', days:[0,1,2,3,4,5,6], group:'chores' },
+    { id:'kitchen',   name:'Порядок на кухне', icon:'🍽️', days:[0,1,2,3,4,5,6], group:'chores' },
+    { id:'dust',      name:'Вытереть пыль',    icon:'🧽', days:[0,6],           group:'chores' }
+  ];
+
+  const GROUPS = [
+    { id:'school', label:'Школа',                            icon:'🏫' },
+    { id:'extra',  label:'Дополнительные занятия',            icon:'🥋' },
+    { id:'prep',   label:'Домашняя подготовка',               icon:'📚' },
+    { id:'sport',  label:'Спорт',                             icon:'💪' },
+    { id:'chores', label:'Домашние обязанности',              icon:'🧹' }
+  ];
+
+  const weekday = d => new Date(YEAR, MONTH, d).getDay();
+  const applicable = (task, day) => task.days.indexOf(weekday(day)) !== -1;
+
+  /* ---------- Состояние ---------- */
+  let state = {};
+  try { state = JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { state = {}; }
+  const save = () => {
+    try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
+  };
+
+  /* Цель по подтягиваниям */
+  function loadGoal() {
+    const raw = parseInt(localStorage.getItem(KEY + '-goal'), 10);
+    return (isFinite(raw) && raw > 0) ? raw : 100;
+  }
+  function saveGoal(v) {
+    try { localStorage.setItem(KEY + '-goal', String(v)); } catch (e) {}
+  }
+
+  /* ---------- Построение таблицы ---------- */
+  const grid = document.getElementById('grid');
+
+  function buildGrid() {
+    const today = new Date();
+    const isThisMonth = today.getFullYear() === YEAR && today.getMonth() === MONTH;
+    const todayNum = today.getDate();
+
+    let html = '<thead><tr><th class="task-col"><div class="tc"><span class="tname">Задание</span></div></th>';
+    for (let d = 1; d <= DAYS; d++) {
+      const wd = weekday(d);
+      const cls = ['day'];
+      if (wd === 0 || wd === 6) cls.push('we');
+      if (isThisMonth && d === todayNum) cls.push('today');
+      html += `<th class="${cls.join(' ')}"><span class="dnum">${d}</span><span class="dwd">${WD[wd]}</span></th>`;
+    }
+    html += '</tr></thead><tbody>';
+
+    GROUPS.forEach(group => {
+      const groupTasks = TASKS.filter(t => t.group === group.id);
+      if (!groupTasks.length) return;
+
+      /* заголовок раздела */
+      html += `<tr class="group-row"><td colspan="${DAYS + 1}">
+                 <span class="gicon">${group.icon}</span>${group.label}
+                 <span class="gcount" data-group-count="${group.id}"></span>
+               </td></tr>`;
+
+      groupTasks.forEach(task => {
+        /* строка с полем цели для подтягиваний */
+        if (task.id === 'pullups') {
+          html += `<tr class="goal-row"><th class="task-col">
+                     <div class="goal-box">
+                       <label for="goalInput">🎯 Цель, всего:</label>
+                       <input id="goalInput" type="number" min="1" max="9999" inputmode="numeric" value="${loadGoal()}" title="Целевое количество подтягиваний за месяц">
+                     </div>
+                   </th>`;
+          for (let d = 1; d <= DAYS; d++) {
+            const wd = weekday(d);
+            const we = (wd === 0 || wd === 6) ? ' we' : '';
+            html += `<td class="na${we}"></td>`;
+          }
+          html += `</tr>
+                   <tr class="goal-progress-row"><td colspan="${DAYS + 1}">
+                     <div class="goal-progress">
+                       <div class="gp-bar"><div class="gp-fill" id="goalFill"></div></div>
+                       <span class="gp-text" id="goalText">0 / ${loadGoal()}</span>
+                     </div>
+                   </td></tr>`;
+        }
+
+        html += `<tr><th class="task-col"><div class="tc">
+                   <span class="tname"><span class="ticon">${task.icon}</span>${task.name}</span>
+                   <span class="badge" data-badge="${task.id}">0/0</span>
+                 </div></th>`;
+
+        for (let d = 1; d <= DAYS; d++) {
+          const wd = weekday(d);
+          const we = (wd === 0 || wd === 6) ? ' we' : '';
+
+          if (!applicable(task, d)) {
+            html += `<td class="na${we}"></td>`;
+          } else if (task.type === 'number') {
+            html += `<td class="${we.trim()}"><input class="num" type="number" min="0" max="99"
+                       inputmode="numeric" placeholder="–" title="${task.name}, ${d} ноября"
+                       data-task="${task.id}" data-day="${d}"></td>`;
+          } else {
+            html += `<td class="${we.trim()}"><input class="cb" type="checkbox"
+                       title="${task.name}, ${d} ноября"
+                       data-task="${task.id}" data-day="${d}"></td>`;
+          }
+        }
+        html += '</tr>';
+      });
+    });
+
+    html += '</tbody>';
+    grid.innerHTML = html;
+  }
+
+  /* ---------- Восстановление значений ---------- */
+  function restore() {
+    grid.querySelectorAll('input[data-task]').forEach(el => {
+      const bag = state[el.dataset.task];
+      if (!bag) return;
+      const v = bag[el.dataset.day];
+      if (v === undefined || v === null || v === false) return;
+
+      if (el.type === 'checkbox') {
+        el.checked = true;
+      } else {
+        el.value = v;
+        syncNumCell(el);
+      }
+    });
+  }
+
+  function syncNumCell(el) {
+    const td = el.closest('td');
+    if (td) td.classList.toggle('has-val', Number(el.value) > 0);
+  }
+
+  /* ---------- Обработка ввода ---------- */
+  grid.addEventListener('input', e => {
+    const el = e.target;
+
+    /* поле цели */
+    if (el.id === 'goalInput') {
+      let v = parseInt(el.value, 10);
+      if (!isFinite(v) || v < 1) v = 1;
+      if (v > 9999) v = 9999;
+      saveGoal(v);
+      update();
+      return;
+    }
+
+    const task = el.dataset.task;
+    const day  = el.dataset.day;
+    if (!task || !day) return;
+
+    state[task] = state[task] || {};
+
+    if (el.type === 'checkbox') {
+      if (el.checked) state[task][day] = true;
+      else delete state[task][day];
+    } else {
+      const raw = el.value.trim();
+      const num = Number(raw);
+      if (raw === '' || isNaN(num) || num <= 0) {
+        delete state[task][day];
+      } else {
+        state[task][day] = String(num);
+      }
+      syncNumCell(el);
+    }
+
+    if (Object.keys(state[task]).length === 0) delete state[task];
+
+    save();
+    update();
+  });
+
+  /* сброс цели, если поле опустело (blur) */
+  grid.addEventListener('blur', e => {
+    if (e.target.id === 'goalInput' && (!e.target.value || Number(e.target.value) < 1)) {
+      e.target.value = loadGoal();
+    }
+  }, true);
+
+  /* ---------- Подсчёт ---------- */
+  function computeStats() {
+    let done = 0, total = 0;
+    const perTask = {};
+    const perGroup = {};
+
+    GROUPS.forEach(g => perGroup[g.id] = { done: 0, total: 0 });
+
+    TASKS.forEach(task => {
+      let d = 0, t = 0;
+      for (let day = 1; day <= DAYS; day++) {
+        if (!applicable(task, day)) continue;
+        t++;
+        const bag = state[task.id];
+        const v = bag ? bag[day] : undefined;
+        if (task.type === 'number') {
+          if (Number(v) > 0) d++;
+        } else if (v === true) {
+          d++;
+        }
+      }
+      perTask[task.id] = { done: d, total: t };
+      done += d;
+      total += t;
+
+      if (perGroup[task.group]) {
+        perGroup[task.group].done  += d;
+        perGroup[task.group].total += t;
+      }
+    });
+
+    return { done, total, perTask, perGroup };
+  }
+
+  /* ---------- Обновление интерфейса ---------- */
+  const $pct   = document.getElementById('pct');
+  const $ratio = document.getElementById('ratio');
+  const $bar   = document.getElementById('barFill');
+
+  function update() {
+    const { done, total, perTask, perGroup } = computeStats();
+    const p = total ? done / total : 0;
+
+    $pct.textContent = Math.round(p * 100) + '%';
+    $ratio.textContent = `${done} из ${total} заданий`;
+    $bar.style.width = (p * 100).toFixed(1) + '%';
+
+    for (const id in perTask) {
+      const badge = document.querySelector(`[data-badge="${id}"]`);
+      if (!badge) continue;
+      const { done: d, total: t } = perTask[id];
+      badge.textContent = `${d}/${t}`;
+      badge.classList.toggle('full', t > 0 && d === t);
+    }
+
+    for (const gid in perGroup) {
+      const el = document.querySelector(`[data-group-count="${gid}"]`);
+      if (!el) continue;
+      const { done: d, total: t } = perGroup[gid];
+      el.textContent = t ? `${d} / ${t}` : '';
+    }
+
+    updateGoal();
+    updateScene(p);
+    drawChart();
+  }
+
+  /* ---------- Цель по подтягиваниям ---------- */
+  function updateGoal() {
+    const goal = loadGoal();
+    let sum = 0;
+    const bag = state['pullups'] || {};
+    for (let d = 1; d <= DAYS; d++) {
+      const v = Number(bag[d]);
+      if (isFinite(v) && v > 0) sum += v;
+    }
+    const pct = Math.min(100, (sum / goal) * 100);
+
+    const fill = document.getElementById('goalFill');
+    const text = document.getElementById('goalText');
+    if (fill) fill.style.width = pct.toFixed(1) + '%';
+    if (text) {
+      text.innerHTML = `<b>${sum}</b> / ${goal} · ${Math.round(pct)}%`;
+      text.style.color = sum >= goal ? '#15803d' : '#5c6b7f';
+    }
+    return { sum, goal };
+  }
+
+  /* ---------- Сцена ---------- */
+  const S = {
+    sky:        document.getElementById('skyBlueRect'),
+    rainbow:    document.getElementById('rainbow'),
+    rain:       document.getElementById('rain'),
+    cloudsGrey: document.getElementById('cloudsGrey'),
+    cloudsWhite:document.getElementById('cloudsWhite'),
+    hillBack:   document.getElementById('hillBackGreen'),
+    hillFront:  document.getElementById('hillFrontGreen'),
+    sunGroup:   document.getElementById('sunGroup'),
+    sunGlow:    document.getElementById('sunGlow'),
+    tree:       document.getElementById('tree'),
+    flowers:    document.getElementById('flowers'),
+    birds:      document.getElementById('birds')
+  };
+
+  const clamp = (v, a, b) => Math.max(a === undefined ? 0 : a, Math.min(b === undefined ? 1 : b, v));
+
+  function updateScene(p) {
+    p = clamp(p);
+    const e = 1 - Math.pow(1 - p, 1.5);
+
+    S.sky.setAttribute('opacity', p.toFixed(3));
+    S.rain.setAttribute('opacity', clamp(1 - p * 2.4).toFixed(3));
+    S.cloudsGrey.setAttribute('opacity', clamp(0.95 - p * 1.4).toFixed(3));
+    S.cloudsWhite.setAttribute('opacity', clamp((p - 0.12) * 1.45).toFixed(3));
+
+    S.hillBack.setAttribute('opacity', p.toFixed(3));
+    S.hillFront.setAttribute('opacity', p.toFixed(3));
+
+    const sunX = 1000 - 40 * e;
+    const sunY = 290 - 235 * e;
+    S.sunGroup.setAttribute('transform', `translate(${sunX.toFixed(1)} ${sunY.toFixed(1)})`);
+    S.sunGlow.setAttribute('opacity', (clamp((p - 0.2) / 0.8) * 0.9).toFixed(3));
+
+    const ts = 0.1 + 0.9 * Math.pow(p, 0.85);
+    S.tree.setAttribute('transform', `translate(380 240) scale(${ts.toFixed(3)})`);
+
+    S.flowers.setAttribute('opacity', clamp((p - 0.5) / 0.5).toFixed(3));
+    S.birds.setAttribute('opacity',   clamp((p - 0.6) / 0.4).toFixed(3));
+    S.rainbow.setAttribute('opacity', (clamp((p - 0.8) / 0.2) * 0.9).toFixed(3));
+  }
+
+  /* ---------- Дождь ---------- */
+  function buildRain() {
+    let html = '';
+    for (let i = 0; i < 55; i++) {
+      const x   = Math.random() * 1200;
+      const y   = Math.random() * 160;
+      const len = 10 + Math.random() * 10;
+      html += `<line x1="${x.toFixed(0)}" y1="${y.toFixed(0)}" x2="${(x - 5).toFixed(0)}" y2="${(y + len).toFixed(0)}"/>`;
+    }
+    S.rain.innerHTML = html;
+  }
+
+  /* ---------- График подтягиваний ---------- */
+  const canvas = document.getElementById('chart');
+  const ctx = canvas.getContext('2d');
+  const chartEmpty = document.getElementById('chartEmpty');
+  const chartSum = document.getElementById('chartSum');
+
+  function fitCanvas() {
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    const w = rect.width || 1200;
+    const h = 200;
+    canvas.width  = Math.round(w * dpr);
+    canvas.height = Math.round(h * dpr);
+    canvas.style.height = h + 'px';
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return { w, h };
+  }
+
+  function getPullupData() {
+    const bag = state['pullups'] || {};
+    const arr = [];
+    for (let d = 1; d <= DAYS; d++) {
+      const v = Number(bag[d]);
+      arr.push({ day: d, value: isFinite(v) && v > 0 ? v : 0 });
+    }
+    return arr;
+  }
+
+  function drawChart() {
+    const { w, h } = fitCanvas();
+    ctx.clearRect(0, 0, w, h);
+
+    const data = getPullupData();
+    const values = data.map(p => p.value);
+    const total = values.reduce((a, b) => a + b, 0);
+    const maxV = Math.max.apply(null, values);
+    chartSum.innerHTML = `всего: <b>${total}</b> · максимум: <b>${maxV}</b>`;
+
+    const hasData = total > 0;
+    chartEmpty.style.display = hasData ? 'none' : 'flex';
+
+    const padL = 34, padR = 12, padT = 14, padB = 26;
+    const plotW = w - padL - padR;
+    const plotH = h - padT - padB;
+
+    const yMax = Math.max(5, Math.ceil(maxV / 5) * 5);
+    const yTicks = Math.min(6, yMax);
+    const stepV = yMax / yTicks;
+
+    ctx.font = '11px system-ui, -apple-system, Segoe UI, Roboto, sans-serif';
+    ctx.textBaseline = 'middle';
+    ctx.textAlign = 'right';
+    ctx.strokeStyle = '#eef3f9';
+    ctx.lineWidth = 1;
+
+    for (let i = 0; i <= yTicks; i++) {
+      const val = stepV * i;
+      const y = padT + plotH - (val / yMax) * plotH;
+      ctx.beginPath();
+      ctx.moveTo(padL, y + .5);
+      ctx.lineTo(w - padR, y + .5);
+      ctx.stroke();
+      ctx.fillStyle = '#9aa6b6';
+      ctx.fillText(String(Math.round(val)), padL - 7, y);
+    }
+
+    const barSpace = plotW / DAYS;
+    const barW = Math.max(2, barSpace * 0.62);
+    const labelEvery = w < 620 ? 3 : 2;
+
+    ctx.textAlign = 'center';
+    for (let d = 1; d <= DAYS; d++) {
+      if (d === 1 || d === DAYS || d % labelEvery === 0) {
+        const x = padL + (d - 0.5) * barSpace;
+        ctx.fillStyle = '#9aa6b6';
+        ctx.fillText(String(d), x, h - padB / 2 + 1);
+      }
+    }
+
+    /* цель — горизонтальная линия */
+    const { goal } = updateGoal();
+    if (goal > 0) {
+      const dailyGoal = goal / DAYS;
+      const yGoal = padT + plotH - (dailyGoal / yMax) * plotH;
+      if (yGoal >= padT && yGoal <= padT + plotH) {
+        ctx.save();
+        ctx.setLineDash([5, 4]);
+        ctx.strokeStyle = '#f59e0b';
+        ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        ctx.moveTo(padL, yGoal);
+        ctx.lineTo(w - padR, yGoal);
+        ctx.stroke();
+        ctx.restore();
+
+        ctx.fillStyle = '#b45309';
+        ctx.font = 'bold 10px system-ui, -apple-system, Segoe UI, Roboto, sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillText('цель/день ≈ ' + (dailyGoal).toFixed(1), padL + 4, yGoal - 7);
+        ctx.textAlign = 'center';
+        ctx.font = '11px system-ui, -apple-system, Segoe UI, Roboto, sans-serif';
+      }
+    }
+
+    for (let i = 0; i < DAYS; i++) {
+      const val = values[i];
+      if (val <= 0) continue;
+
+      const x = padL + i * barSpace + (barSpace - barW) / 2;
+      const barH = (val / yMax) * plotH;
+      const y = padT + plotH - barH;
+
+      const grad = ctx.createLinearGradient(0, y, 0, y + barH);
+      grad.addColorStop(0, '#34d399');
+      grad.addColorStop(1, '#60a5fa');
+      ctx.fillStyle = grad;
+
+      const r = Math.min(barW / 2, 4, barH);
+      ctx.beginPath();
+      if (ctx.roundRect) {
+        ctx.roundRect(x, y, barW, barH, [r, r, 0, 0]);
+      } else {
+        ctx.moveTo(x, y + barH);
+        ctx.lineTo(x, y + r);
+        ctx.quadraticCurveTo(x, y, x + r, y);
+        ctx.lineTo(x + barW - r, y);
+        ctx.quadraticCurveTo(x + barW, y, x + barW, y + r);
+        ctx.lineTo(x + barW, y + barH);
+        ctx.closePath();
+      }
+      ctx.fill();
+
+      if (barSpace > 16 && barH > 14) {
+        ctx.fillStyle = '#15803d';
+        ctx.font = 'bold 10px system-ui, -apple-system, Segoe UI, Roboto, sans-serif';
+        ctx.textBaseline = 'bottom';
+        ctx.fillText(String(val), x + barW / 2, y - 2);
+        ctx.textBaseline = 'middle';
+        ctx.font = '11px system-ui, -apple-system, Segoe UI, Roboto, sans-serif';
+      }
+    }
+
+    ctx.strokeStyle = '#dfe7f1';
+    ctx.beginPath();
+    ctx.moveTo(padL, padT + plotH + .5);
+    ctx.lineTo(w - padR, padT + plotH + .5);
+    ctx.stroke();
+  }
+
+  /* ---------- Сброс ---------- */
+  document.getElementById('reset').addEventListener('click', () => {
+    if (!confirm('Точно сбросить все отметки за ноябрь 2026?')) return;
+    state = {};
+    save();
+    grid.querySelectorAll('input[type=checkbox]').forEach(cb => { cb.checked = false; });
+    grid.querySelectorAll('input.num').forEach(inp => {
+      inp.value = '';
+      syncNumCell(inp);
+    });
+    update();
+  });
+
+  /* ---------- Запуск ---------- */
+  buildRain();
+  buildGrid();
+  restore();
+  update();
+
+  let rAF = null;
+  window.addEventListener('resize', () => {
+    if (rAF) cancelAnimationFrame(rAF);
+    rAF = requestAnimationFrame(drawChart);
+  });
+
+})();
+</script>
+</body>
+</html>
